@@ -5,7 +5,7 @@ FROM openjdk:17-oracle
 WORKDIR /app
 
 # Copy the Spring Boot application JAR file into the container
-COPY target/myproject-0.0.1-SNAPSHOT.jar myproject.jar
+COPY target/myproject-0.0.1-SNAPSHOT.war myproject.war
 
 # Expose the port your Spring Boot application listens on (usually 8080)
 EXPOSE 8080
@@ -16,4 +16,4 @@ EXPOSE 8080
 # ENV DATABASE_PASSWORD=your_database_password
 
 # Command to run the Spring Boot application when the container starts
-CMD ["java", "-jar", "myproject.jar"]
+CMD ["java", "-jar", "myproject.war"]
