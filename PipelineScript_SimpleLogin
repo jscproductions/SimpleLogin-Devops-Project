@@ -1,0 +1,91 @@
+pipeline {
+    agent any
+    environment {
+        JAVA_HOME = '/usr/lib/jvm/java-1.17.0-openjdk-amd64'
+        NEXUS_URL = '134.209.145.49:8081/' // Corrected Nexus server URL
+        NEXUS_CREDENTIALS_ID = '5ec74a6b-e4d5-461c-bd98-e67eec158d5a' // Replace with your Jenkins credentials ID for Nexus
+        DOCKER_IMAGE_NAME = 'jscproductions/myproject' // Change this to your Docker Hub repository and image name
+        DOCKER_IMAGE_TAG = 'latest' // You can use a specific version or tag
+    }
+
+    stages {
+        stage('Checkout from GitHub') {
+            steps {
+                git(url: 'https://github.com/jscproductions/simplelogin.git', branch: 'main')
+            }
+        }
+
+        stage('Maven Build') {
+            tools {
+                jdk 'Openjdk 17.0.8'
+            }
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+        
+        stage('SonarQube Analysis') {
+	    steps {
+		withSonarQubeEnv('sonarqubedroplet') {
+		    sh 'mvn sonar:sonar'
+		}
+	    }
+	}
+
+
+        stage('Build and Push Docker Image') {
+            steps {
+                script {
+                    // Build the Docker image
+                    sh "docker build -t ${env.DOCKER_IMAGE_NAME}:${env.DOCKER_IMAGE_TAG} ."
+
+                    // Log in to Docker Hub (make sure your Docker Hub credentials are configured in Jenkins)
+                    sh "docker login"
+
+                    // Push the Docker image to Docker Hub
+                    sh "docker push ${env.DOCKER_IMAGE_NAME}:${env.DOCKER_IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('Push to Nexus Repository') {
+            steps {
+                script {
+                    nexusArtifactUploader(
+                        nexusVersion: 'nexus3',
+                        protocol: 'http',
+                        nexusUrl: "${env.NEXUS_URL}", // Use the environment variable
+                        groupId: 'com.jsc',
+                        version: '0.0.1-SNAPSHOT',
+                        repository: 'maven-snapshots',
+                        credentialsId: "${env.NEXUS_CREDENTIALS_ID}", // Use the environment variable
+                        artifacts: [
+                            [artifactId: 'myproject',
+                             classifier: '',
+                             file: 'target/myproject-0.0.1-SNAPSHOT.war',
+                             type: 'war']
+                        ]
+                    )
+                }
+            }
+        }
+        
+        stage ('Deploy') {
+	     steps {
+		script {
+		  deploy adapters: [tomcat9(credentialsId: '241145ba-edbc-4b82-9f99-5513eb9b621f', path: '', url: 'http://localhost:8888/')], contextPath: 'myproject', onFailure: false, war: '**/*.war' 
+		}
+	      }
+	    }
+    }
+}
+
+
+
+
+
+
+
+
+
+
