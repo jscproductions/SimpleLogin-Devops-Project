@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simplelogin-deployment
+spec:
+  replicas: 2  # Number of desired pods
+  selector:
+    matchLabels:
+      app: simplelogin
+  template:
+    metadata:
+      labels:
+        app: simplelogin
+    spec:
+      containers:
+        - name: simplelogin-container
+          image: jscproductions/retry:v1
+          ports:
+            - containerPort: 8080
